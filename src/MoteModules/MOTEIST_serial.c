@@ -1,0 +1,141 @@
+/******************************************************************************************//**
+ * @file   	serial.c
+ * @brief  	This File implements a FreeRTOS serial communication protocol to be used with
+ *			the MoteIST USB expansion board.
+ *
+ * @Author 	Diogo Guerra (me@example.com)
+ * @date   	MArch, 2015
+ * @bug 	No known bugs.
+ *******************************************************************************************/
+#include "MOTEIST_serial.h"
+
+static xQueueHandle xRxedChars;	///< The queue used to hold received characters.
+static xQueueHandle xCharsForTx; ///< The queue used to hold characters waiting transmission.
+#ifdef THREAD_SAFE
+	xSemaphoreHandle xSerialMutex;	///< Semaphore for thread control, if used.
+#endif
+
+/**
+ * @name    Example API Actions
+ * @brief   Example actions available.
+ * @ingroup example
+ *
+ * This API provides certain actions as an example.
+ *
+ * @param [in] repeat  Number of times to do nothing.
+ *
+ * @retval pdPASS	Init Successfull.
+ * @retval pdFAIL  	Init Failed.
+ *
+ * Example Usage:
+ * @code
+ *    example_nada(3); // Do nothing 3 times.
+ * @endcode
+ */
+portBASE_TYPE xSerialPortInit(unsigned portBASE_TYPE uxQueueLength )
+{
+	/* Initialise the hardware. */
+	vHalSetupMoteUSB();	//Initialise UCA0 at 115200 baud
+	{
+		/* Create the queues used by the com test task. */
+		xRxedChars = xQueueCreate( uxQueueLength, sizeof( char ) );
+		xCharsForTx = xQueueCreate( uxQueueLength, sizeof( char ) );
+		#ifdef THREAD_SAFE
+			xSerialMutex = xSemaphoreCreateMutex();
+			if(xSerialMutex == pdFAIL)
+				return pdFAIL;
+		#endif
+		UCA0IE |= UCRXIE; 
+	}
+	return pdPASS;
+}
+
+/*-----------------------------------------------------------*/
+
+
+portBASE_TYPE xSendSerialMessage(char * pcString){
+	portBASE_TYPE xReturn = pdFAIL;
+
+	#ifdef THREAD_SAFE
+	xSemaphoreTake( xSerialMutex, portMAX_DELAY);
+	#endif
+	xReturn = xSendSerialMessageN(pcString, strlen(pcString));
+	#ifdef THREAD_SAFE
+		xSemaphoreGive( xSerialMutex);
+	#endif
+	return xReturn;
+}
+
+/*-----------------------------------------------------------*/
+
+portBASE_TYPE xSendSerialMessageN(char * pcString, int len){
+	portBASE_TYPE xReturn = pdFAIL;
+	int i;
+
+	#ifdef THREAD_SAFE
+	xSemaphoreTake( xSerialMutex, portMAX_DELAY);
+	#endif
+	for(i=0; i < len; i++){
+		xReturn = xQueueSendToBack( xCharsForTx, &pcString[i], portMAX_DELAY );
+		UCA0IE |= UCTXIE;
+	}		
+	#ifdef THREAD_SAFE
+		xSemaphoreGive( xSerialMutex);
+	#endif
+	return xReturn;
+}
+
+/*-----------------------------------------------------------*/
+
+portBASE_TYPE xReceiveSerialMessage(char * pcBuffer, unsigned int maxSize){
+	unsigned int i = 0;
+	char * pcChar;
+	
+	while(i<maxSize){
+		pcChar = &(pcBuffer[i++]);
+		xQueueReceive( xRxedChars, pcChar, portMAX_DELAY );
+		if(*pcChar == '\n' || *pcChar == '\r'){
+			pcBuffer[i] = '\0';
+			return pdPASS;
+		}
+	}
+	pcBuffer[maxSize-1] = '\0';
+	return pdFAIL;
+}
+
+/*-----------------------------------------------------------*/
+
+portBASE_TYPE xReceiveSerialMessageN(char * pcBuffer, unsigned int len){
+	unsigned int i = 0;
+	char * pcChar;
+	
+	while(len--){
+		pcChar = &(pcBuffer[i++]);
+		xQueueReceive( xRxedChars, pcChar, portMAX_DELAY );
+	}
+	return pdFAIL;
+}
+
+/*-----------------------------------------------------------*/
+
+void __attribute__ ( (interrupt(USCI_A0_VECTOR)) ) USCI_A0_ISR( void ){
+	char cChar;
+	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+                   
+	if((UCA0IFG & UCRXIFG) && (UCA0IE & UCRXIE)){                               		// Vector 2 - RXIFG
+		cChar = UCA0RXBUF;
+		xQueueSendToBackFromISR( xRxedChars, &cChar, (BaseType_t * const) &xHigherPriorityTaskWoken );
+	}
+	if((UCA0IFG & UCTXIFG) && (UCA0IE & UCTXIE)){                                		// Vector 4 - TXIFG
+		if( xQueueReceiveFromISR( xCharsForTx, &cChar, (BaseType_t * const) &xHigherPriorityTaskWoken ) == pdTRUE ){
+			UCA0TXBUF = cChar;
+		}
+		else{
+			UCA0IE &= ~UCTXIE;	//No more Characters to transmit, disable TX interrupt
+		}
+	}
+
+	__bic_SR_register_on_exit( SCG1 + SCG0 + OSCOFF + CPUOFF );
+	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );	//this MUST come LAST
+}
+
