@@ -1,0 +1,15 @@
+MRM - host
+MRM-host is a multi-platform application which can be used in all operating systems supported by Oracle Java.
+
+MRM-host requires Java RXTX libraries, which are not part of the default JDK package but can be installed in Ubuntu executing “sudo apt-get install librxtx-java”.
+If you are using Mac OS X, copy the extracted “RXTXcomm.jar“ and “librxtxSerial.jnilib“ to /Library/Java/Extensions
+If you are using Windows, copy the extracted “rxtxSerial.dll” to “C:\Program Files\Java\jre1.XXXX\bin\” and “RXTXcomm.jar” to “C:\Program Files\Java\jre1.XXXX\lib\ext\”
+
+It is also necessary to install MSPGCC to compile the programs to be deployed to MoteIST.
+There are two versions of MSPGCC:
+The legacy mspgcc: Instructions on how to do it are available https://sourceforge.net/projects/mspgcc/
+IMPORTANT: by default, MSPGCC uses all the available code memory, which colides with MRM-mote description. To comply with the diagram, you must replace the memory mapping file for MSP430F5438a with the one available in the Downloads section (after uncompressing). In Ubuntu, the memory mapping file is located in /usr/msp430/lib/ldscripts/msp430f5438a
+In the legacy mspgcc: The memory map is called memory.x
+
+
+IMPORTANT: Please take notice that MRM1 and MRM2 do not support newer versions of mspgcc like the 'Red Hat mspgcc' because the Guest Application Program has a fixed entry point in older versions of MRM
