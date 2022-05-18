@@ -114,101 +114,19 @@
 #include "./MoteModules/include/MOTEIST_serial.h"
 #include "MoteIST_LOW_POWER.h"
 
-/* Standard demo includes. */
-// #include "ParTest.h"
-// #include "dynamic.h"
-// #include "comtest2.h"
-// #include "GenQTest.h"
-// #include "TimerDemo.h"
-// #include "countsem.h"
-
-/* Codes sent within messages to the LCD task so the LCD task can interpret
-exactly what the message it just received was.  These are sent in the
-cMessageID member of the message structure (defined below). */
-#define mainMESSAGE_BUTTON_UP			( 1 )
-#define mainMESSAGE_BUTTON_SEL			( 2 )
-#define mainMESSAGE_STATUS				( 3 )
-
-/* When the cMessageID member of the message sent to the LCD task is
-mainMESSAGE_STATUS then these definitions are sent in the ulMessageValue member
-of the same message and indicate what the status actually is. */
-#define mainERROR_DYNAMIC_TASKS			( pdPASS + 1 )
-#define mainERROR_COM_TEST				( pdPASS + 2 )
-#define mainERROR_GEN_QUEUE_TEST		( pdPASS + 3 )
-#define mainERROR_REG_TEST				( pdPASS + 4 )
-#define mainERROR_TIMER_TEST			( pdPASS + 5 )
-#define mainERROR_COUNT_SEM_TEST		( pdPASS + 6 )
-
-/* The length of the queue (the number of items the queue can hold) that is used
-to send messages from tasks and interrupts the the LCD task. */
-#define mainQUEUE_LENGTH				( 5 )
-
-/* Priorities used by the test and demo tasks. */
-#define mainLCD_TASK_PRIORITY			( tskIDLE_PRIORITY + 1 )
-#define mainCOM_TEST_PRIORITY			( tskIDLE_PRIORITY + 2 )
-#define mainGENERIC_QUEUE_TEST_PRIORITY	( tskIDLE_PRIORITY )
-
-/* The LED used by the comtest tasks. See the comtest.c file for more
-information.  */
-#define mainCOM_TEST_LED				( 1 )
-
-/* The baud rate used by the comtest tasks. */
-#define mainCOM_TEST_BAUD_RATE			( 38400 )
-
-/* The maximum number of lines of text that can be displayed on the LCD. */
-#define mainMAX_LCD_LINES				( 8 )
-
-/* Just used to ensure parameters are passed into tasks correctly. */
-#define mainTASK_PARAMETER_CHECK_VALUE	( ( void * ) 0xDEAD )
-
-/* The base period used by the timer test tasks. */
-#define mainTIMER_TEST_PERIOD			( 50 )
-
-/* The frequency at which the check timer (described in the comments at the top
-of this file) will call its callback function. */
-#define mainCHECK_TIMER_PERIOD			( 5000UL / ( unsigned long ) portTICK_PERIOD_MS )
-
-/* Misc. */
-#define mainDONT_BLOCK					( 0 )
-/*-----------------------------------------------------------*/
-
-/*
- * The reg test tasks as described at the top of this file.
- */
-extern void vRegTest1Task( void *pvParameters );
-extern void vRegTest2Task( void *pvParameters );
 
 /*
  * Configures clocks, LCD, port pints, etc. necessary to execute this demo.
  */
 static void prvSetupHardware( void );
+void vTaskLedToggle(int taskNumber);
 
  void vDummyTask(void *pvParameters);
  void vDummyTask3(void *pvParameters);
  void vDummyTask2(void *pvParameters);
+
+ bool consumptionTest = false;
 /*-----------------------------------------------------------*/
-
-/* Variables that are incremented on each iteration of the reg test tasks -
-provided the tasks have not reported any errors.  The check task inspects these
-variables to ensure they are still incrementing as expected.  If a variable
-stops incrementing then it is likely that its associate task has stalled. */
-volatile unsigned short usRegTest1Counter = 0, usRegTest2Counter = 0;
-
-/* The handle of the queue used to send messages from tasks and interrupts to
-the LCD task. */
-static QueueHandle_t xLCDQueue = NULL;
-
-/* The 'check' timer, as described at the top of this file. */
-static TimerHandle_t xCheckTimer = NULL;
-
-/* The definition of each message sent from tasks and interrupts to the LCD
-task. */
-typedef struct
-{
-	char cMessageID;				/* << States what the message is. */
-	unsigned long ulMessageValue; 	/* << States the message value (can be an integer, string pointer, etc. depending on the value of cMessageID). */
-} xQueueMessage;
-
 
 static void vBlink(void * pvParameters){
 	int* param = (int*) pvParameters;
@@ -238,15 +156,14 @@ void main( void )
 	prvSetupHardware();
 	hal_setup_leds();
 	xSerialPortInit(200);
-	/* Create the queue used by tasks and interrupts to send strings to the LCD
-	task. */
+
 	
 	setupTaskParameters();
 
 		int aux =37;
-		xTaskCreate( vDummyTask3, "Reg2", configMINIMAL_STACK_SIZE*4, &task1Properties, 4, NULL );
-		xTaskCreate( vDummyTask3, "Reg2", configMINIMAL_STACK_SIZE*4, &task2Properties, 4, NULL );
-		xTaskCreate( vDummyTask3, "Reg2", configMINIMAL_STACK_SIZE*4, &task3Properties, 4, NULL );
+		xTaskCreate( vDummyTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task1Properties, 4, NULL );
+		xTaskCreate( vDummyTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task2Properties, 4, NULL );
+		xTaskCreate( vDummyTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task3Properties, 4, NULL );
 
 		/* Start the scheduler. */
 		vTaskStartScheduler();
@@ -275,8 +192,6 @@ static void prvSetupHardware( void )
 
 	LFXT_Start( XT1DRIVE_0 );
 	hal430SetSystemClock( configCPU_CLOCK_HZ, configLFXT_CLOCK_HZ );
-
-
 
 }
 /*-----------------------------------------------------------*/
@@ -370,42 +285,8 @@ long fibonnacciCalculation(long cycles)
     return a;
 }
 
-// /*-----------------------------------------------------------*/
-// // Task for testing the pvParameters
-// void vDummyTask2(void *pvParameters)
-// {
-//     int *task = (uint32_t *)vTaskGetPvParameters(xTaskGetCurrentTaskHandle());
-//     StackType_t *stackTop = vTaskGetTopOfStack(xTaskGetCurrentTaskHandle());
-//     stackTop += 9;
-//     StackType_t *correctParameters = *stackTop;
-//     char buffer[200];
-//     TickType_t xLastWakeTime = 0;
-//     sprintf(buffer, "[Task1 - The address of PvParameters: %lx]\r\n", &pvParameters);
-//     xSendSerialMessage(buffer);
-//     // PvParameters is pointing to an address above the supposed one (222c instead of 222a), but
-//     // in 20bit mode the words are 4 bits
-//     sprintf(buffer, "[Task1 - The value pointed by PvParameters: %lx]\r\n", (uint32_t *)pvParameters);
-//     xSendSerialMessage(buffer);
+/*-----------------------------------------------------------*/
 
-//     sprintf(buffer, "[Task1 - The correct address of PvParameters: %lx]  \r\n", stackTop);
-//     xSendSerialMessage(buffer);
-//     sprintf(buffer, "[Task1 - The correct value of PvParameters: %lx]  \r\n", task);
-//     xSendSerialMessage(buffer);
-//     sprintf(buffer, "[Task1 - Which points to: %d]  \r\n", *correctParameters);
-//     xSendSerialMessage(buffer);
-
-//     long start, end;
-
-//     for (;;)
-//     {
-//         if (*task == 37)
-//             hal_toggle_led(LED_1);
-//         hal_toggle_led(LED_2);
-//         sprintf(buffer, "[Task1 - Which points to: %d]  \r\n", *correctParameters);
-//         xSendSerialMessage(buffer);
-//         vTaskDelayUntil(&xLastWakeTime, 100);
-//     }
-// }
 // Task for testing the pvParameters
 void vDummyTask3(void *pvParameters)
 {
@@ -453,108 +334,72 @@ void vDummyTask3(void *pvParameters)
     }
 }
 // Test application (Still not done)
-// void vDummyTask(void *pvParameters)
-// {
+void vDummyTask(void *pvParameters)
+{
 
-//     char buffer[100];
-//     /* Unpack parameters into local variables for ease of interpretation */
-//     struct taskProperties *parameters = (struct taskProperties *)vTaskGetPvParameters(xTaskGetCurrentTaskHandle());
-//     const TickType_t xDelay = parameters->xDelay / portTICK_PERIOD_MS;
-//     int baseCycles = parameters->xFibonnaciCycles;
-//     int worstCaseCycles = parameters->xFibonnaciCyclesWorstCase;
-//     int *isWorstCase = parameters->xPowerConsumptionTestIsWorstCase;
-//     int taskNumber = parameters->taskNumber;
+    char buffer[100];
+    /* Unpack parameters into local variables for ease of interpretation */
+    struct taskProperties *parameters = (struct taskProperties *)parameters;
+    const TickType_t xDelay = parameters->xDelay / portTICK_PERIOD_MS;
+    int baseCycles = parameters->xFibonnaciCycles;
+    int worstCaseCycles = parameters->xFibonnaciCyclesWorstCase;
+    int *isWorstCase = parameters->xPowerConsumptionTestIsWorstCase;
+    int taskNumber = parameters->taskNumber;
 
-//     /* Define local variables for counting runs and delays */
-//     TickType_t xLastWakeTime = 0;
-//     int fibonnacciAuxiliar = 0;
-//     int runNumber = 0;
-//     int aux = 0;
+    /* Define local variables for counting runs and delays */
+    TickType_t xLastWakeTime = 0;
+    int fibonnacciAuxiliar = 0;
+    int runNumber = 0;
+    int aux = 0;
 
-//     sprintf(buffer, "[Task1 - Delay: %d]\r\n", xDelay);
-//     xSendSerialMessage(buffer);
-//     sprintf(buffer, "[Task1 - baseCycles: %d]\r\n", baseCycles);
-//     xSendSerialMessage(buffer);
-//     sprintf(buffer, "[Task1 - WorstCase: %d]\r\n", worstCaseCycles);
-//     xSendSerialMessage(buffer);
-//     sprintf(buffer, "[Task1 - taskNumber: %d]\r\n", isWorstCase[4]);
-//     xSendSerialMessage(buffer);
-//     for (;;)
-//     {
-//         switch (taskNumber)
-//         {
-//         case 0:
-//             hal_toggle_led(LED_1);
-//             break;
-//         case 1:
-//             hal_toggle_led(LED_2);
-//             break;
-//         case 2:
-//             hal_toggle_led(LED_3);
-//             break;
-//         }
-//         vTaskDelayUntil(&xLastWakeTime, 1000);
-//     }
-//     for (;;)
-//     {
+    sprintf(buffer, "[Task1 - Delay: %d]\r\n", xDelay);
+    xSendSerialMessage(buffer);
+    sprintf(buffer, "[Task1 - baseCycles: %d]\r\n", baseCycles);
+    xSendSerialMessage(buffer);
+    sprintf(buffer, "[Task1 - WorstCase: %d]\r\n", worstCaseCycles);
+    xSendSerialMessage(buffer);
+    sprintf(buffer, "[Task1 - taskNumber: %d]\r\n", isWorstCase[4]);
+    xSendSerialMessage(buffer);
+    for (;;)
+    {
+		vTaskLedToggle(taskNumber);
+		vTaskDelayUntil(&xLastWakeTime, 1000);
+    }
+    for (;;)
+    {
 
-//         // Cycle conserving task ready to run
-//         if (dvfsMode == 2)
-//             aux = cycleConservingDVSTaskReady(taskNumber, xTaskGetTickCount(), xLastWakeTime + xDelay);
-//         // If not testing light up leds
-//         if (!ConsumptionTest)
-//         {
-//             hal_toggle_led(LED_1);
-//             // sprintf(buffer, "[%d] Count %d  / Worstcase %d \r\n", taskNumber, xTaskGetTickCount(), parameters->xDelay);
-//             // xSendSerialMessage(buffer);
-//             switch (taskNumber)
-//             {
-//             case 0:
-//                 hal_toggle_led(LED_1);
-//                 break;
-//             case 1:
-//                 hal_toggle_led(LED_2);
-//                 break;
-//             case 2:
-//                 hal_toggle_led(LED_3);
-//                 break;
-//             }
-//         }
-//         // fibonnacciAuxiliar = fibonnacciCalculation(isWorstCase[runNumber] == 0 ? baseCycles : worstCaseCycles);
-//         fibonnacciAuxiliar = fibonnacciCalculation(1000);
-//         if (!ConsumptionTest)
-//         {
-//             switch (taskNumber)
-//             {
-//             case 0:
-//                 hal_toggle_led(LED_1);
-//                 break;
-//             case 1:
-//                 hal_toggle_led(LED_2);
-//                 break;
-//             case 2:
-//                 hal_toggle_led(LED_3);
-//                 break;
-//             }
-//         }
-//         runNumber++;
-//         if (runNumber > 7)
-//             runNumber = 0;
+        // Cycle conserving task ready to run
+        if (dvfsMode == 2)
+            aux = cycleConservingDVSTaskReady(taskNumber, xTaskGetTickCount(), xLastWakeTime + xDelay);
+        // If not testing light up leds
+        if (!consumptionTest)
+        {
+			vTaskLedToggle(taskNumber);
+        }
+        // fibonnacciAuxiliar = fibonnacciCalculation(isWorstCase[runNumber] == 0 ? baseCycles : worstCaseCycles);
+        fibonnacciAuxiliar = fibonnacciCalculation(1000);
+        if (!consumptionTest)
+        {
+			vTaskLedToggle(taskNumber);
+        }
+        runNumber++;
+        if (runNumber > 7)
+            runNumber = 0;
 
-//         // Cycle conserving task ready finished running
-//         if (dvfsMode == 2)
-//             cycleConservingDVSTaskComplete(taskNumber, xTaskGetTickCount());
+        // Cycle conserving task ready finished running
+        if (dvfsMode == 2)
+            cycleConservingDVSTaskComplete(taskNumber, xTaskGetTickCount());
 
-//         // If the deadline is missed suspend all and print out a code
-//         if ((xTaskGetTickCount()) > xLastWakeTime + xDelay)
-//         {
-//             hal_toggle_leds();
-//             vTaskSuspendAll();
-//         }
-//         // Explicar esse delay no modelo
-//         vTaskDelayUntil(&xLastWakeTime, xDelay);
-//     }
-// }
+        // If the deadline is missed suspend all and print out a code
+        if ((xTaskGetTickCount()) > xLastWakeTime + xDelay)
+        {
+            hal_toggle_leds();
+            vTaskSuspendAll();
+        }
+        // Explicar esse delay no modelo
+        vTaskDelayUntil(&xLastWakeTime, xDelay);
+    }
+}
 /*-----------------------------------------------------------*/
 
 void configureADC()
@@ -577,4 +422,18 @@ float sampleADC()
     // __no_operation(); // For debug only
 }
 
+void vTaskLedToggle(int taskNumber){
+	            switch (taskNumber)
+            {
+            case 0:
+                hal_toggle_led(LED_1);
+                break;
+            case 1:
+                hal_toggle_led(LED_2);
+                break;
+            case 2:
+                hal_toggle_led(LED_3);
+                break;
+            }
+}
 

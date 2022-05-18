@@ -59,7 +59,7 @@ CFLAGS=-mmcu=msp430f5438a -mcpu=430  $(OPT) $(DEBUG) -I. -I$(SOURCE_PATH)/includ
 #$(WARNINGS)
 
 #
-# Source files that can be built to THUMB mode.
+# Main + FreeRTOS core files
 #
 SRC = \
 main.c \
@@ -74,36 +74,22 @@ $(MCU_CORE_PATH)/HAL_PMM.c \
 $(MCU_CORE_PATH)/hal_UCS.c \
 $(HAL_PATH)/uart.c \
 $(MODULES_PATH)/MOTEIST_serial.c \
-MoteIST_LOW_POWER.c \
+
+
+# Optional FreeRTOS Files
+SRC += $(SOURCE_PATH)/croutine.c \
+$(SOURCE_PATH)/event_groups.c \
+$(SOURCE_PATH)/stream_buffer.c \
+
+# Low Power Files
+
+SRC+=MoteIST_LOW_POWER.c \
 $(MODULES_PATH)/MSP430Timer.c \
-testApplication.c
-# $(SOURCE_PATH)/croutine.c \
-# $(SOURCE_PATH)/event_groups.c \
-# $(SOURCE_PATH)/stream_buffer.c \
 
-# $(SOURCE_PATH)/croutine.c \
-# $(SOURCE_PATH)/event_groups.c \
-# $(SOURCE_PATH)/stream_buffer.c \
-# 
-# serial/serial.c \
-#
-# Define all object files.
-#
-# OBJ = $(SRC:.c=.o)
+# Application Files
+SRC +=testApplication.c
 
 
-
-# a.out : $(OBJ) makefile
-# 	$(CC) $(OBJ) $(CFLAGS) >> $(LOG_OUT)
-
-# $(OBJ) : %.o : %.c makefile
-# 	$(CC) -c $(CFLAGS) $< -o $@ >> $(LOG_OUT)	
-	
-# clean :
-# 	@rm -f $(OBJ)
-# 	@rm -f *.o *.elf *.lst *.out *.err *.log *.su
-# 	@rm -Rf ./$(OUTDIR)/
-# 	@mkdir $(OUTDIR)
 
 # ****************************************************************************************
 # Utils
@@ -120,7 +106,6 @@ BLUE=`tput setaf 6`
 VIOLET=`tput setaf 5`
 NORMAL=`tput sgr0`
 BOLD=`tput bold`	
-
 
 
 
@@ -151,23 +136,12 @@ $(OUTDIR)/$(TARGET).elf : $(OBJ)
 # ****************************************************************************************
 # Basic rules
 
-# %.o: %.S
-# 	@mkdir -p $(dir $@)
-# 	@printf "$(GREY)%-${PAD}s" "(CC) $<"
-# 	@$(CC) $(CFLAGS) $(ASS_FLAGS) -c  -o $@ $<  2>> $(LOG_OUT)
-	
 
 %.o: %.c
 	@mkdir -p $(dir $@)
 	@printf "$(GREY)%-${PAD}s" "(CC) $<"
 	@$(CC) $(CFLAGS)  -o $@ -c $< 2>> $(LOG_OUT)
 	
-# a.out : $(OBJ) makefile
-# 	$(CC) $(OBJ) $(CFLAGS) >> $(LOG_OUT)
-
-# $(OBJ) : %.o : %.c makefile
-# 	$(CC) -c $(CFLAGS) $< -o $@ >> $(LOG_OUT)	
-
 
 	
 -PHONY :clean
