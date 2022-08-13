@@ -179,8 +179,8 @@ void main( void )
 		// xTaskCreate( vExecutionTimeTesterTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task1Properties, 4, NULL );
 
 		xTaskCreate( vDummyTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task1Properties, 4, NULL );
-		// xTaskCreate( vDummyTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task2Properties, 4, NULL );
-		// xTaskCreate( vDummyTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task3Properties, 4, NULL );
+		xTaskCreate( vDummyTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task2Properties, 4, NULL );
+		xTaskCreate( vDummyTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task3Properties, 4, NULL );
 
 		/* Start the scheduler. */
 		vTaskStartScheduler();
@@ -384,8 +384,8 @@ void vDummyTask(void *pvParameters)
     /* Unpack parameters into local variables for ease of interpretation */
     struct taskProperties *parameters = (struct taskProperties *)pvParameters;
     const TickType_t xDelay = parameters->xDelay / portTICK_PERIOD_MS;
-    int baseCycles = parameters->xFibonnaciCycles;
-    int worstCaseCycles = parameters->xFibonnaciCyclesWorstCase;
+    uint16_t baseCycles = parameters->xFibonnaciCycles;
+    uint16_t worstCaseCycles = parameters->xFibonnaciCyclesWorstCase;
     int *isWorstCase = parameters->xPowerConsumptionTestIsWorstCase;
     int taskNumber = parameters->taskNumber;
 
@@ -395,39 +395,42 @@ void vDummyTask(void *pvParameters)
     int runNumber = 0;
     int aux = 0;
 
-    sprintf(buffer, "[Task %d - Delay: %d]\r\n", taskNumber, xDelay);
-    xSendSerialMessage(buffer);
-    sprintf(buffer, "[Task %d - baseCycles: %d]\r\n", taskNumber,baseCycles);
-    xSendSerialMessage(buffer);
-    sprintf(buffer, "[Task %d - WorstCase: %d]\r\n", taskNumber,worstCaseCycles);
-    xSendSerialMessage(buffer);
-    sprintf(buffer, "[Task %d - taskNumber: %d]\r\n", taskNumber,isWorstCase[4]);
-    xSendSerialMessage(buffer);
-    uint16_t start=0,end=0;
-    initTimer_A();
-    for (;;)
-    {
+    // sprintf(buffer, "[Task %d - Delay: %d]\r\n", taskNumber, xDelay);
+    // xSendSerialMessage(buffer);
+    // sprintf(buffer, "[Task %d - baseCycles: %u]\r\n", taskNumber,baseCycles);
+    // xSendSerialMessage(buffer);
+    // sprintf(buffer, "[Task %d - WorstCase: %u]\r\n", taskNumber,worstCaseCycles);
+    // xSendSerialMessage(buffer);
+    // sprintf(buffer, "[Task %d - taskNumber: %d]\r\n", taskNumber,isWorstCase[4]);
+    // xSendSerialMessage(buffer);
+    // uint16_t start=0,end=0;
+    // initTimer_A();
+    // for (;;)
+    // {
 
-        start=vGetCounterTimer1();
-        fibonnacciAuxiliar = fibonnacciCalculation(1922);
-        end =vGetCounterTimer1();
-        sprintf(buffer, "[Task1 - timer for %d tick: %u | end %u, start %u]\r\n", fibonnacciAuxiliar, end-start, end,start);
-        xSendSerialMessage(buffer);
-        switch (taskNumber)
-        {
-        case 0:
-            hal_toggle_led(LED_1);
-            break;
-        case 1:
-            hal_toggle_led(LED_2);
-            break;
-        case 2:
-            hal_toggle_led(LED_3);
-            break;
-        }
-        
-        vTaskDelayUntil(&xLastWakeTime, 10);
-    }
+    //     start=vGetCounterTimer1();
+    //     fibonnacciAuxiliar = fibonnacciCalculation(isWorstCase[runNumber] == 0 ? baseCycles : worstCaseCycles);
+    //     end =vGetCounterTimer1();
+    //     sprintf(buffer, "[Task1 - timer for %d tick: %u | end %u, start %u]\r\n", fibonnacciAuxiliar, end-start, end,start);
+    //     xSendSerialMessage(buffer);
+    //     switch (taskNumber)
+    //     {
+    //     case 0:
+    //         hal_toggle_led(LED_1);
+    //         break;
+    //     case 1:
+    //         hal_toggle_led(LED_2);
+    //         break;
+    //     case 2:
+    //         hal_toggle_led(LED_3);
+    //         break;
+    //     }
+    //             runNumber++;
+    //     if (runNumber > 7)
+    //         runNumber = 0;
+
+    //     vTaskDelayUntil(&xLastWakeTime, 1000);
+    // }
     for (;;)
     {
 
@@ -439,9 +442,9 @@ void vDummyTask(void *pvParameters)
         {
 			vTaskLedToggle(taskNumber);
         }
-        // fibonnacciAuxiliar = fibonnacciCalculation(isWorstCase[runNumber] == 0 ? baseCycles : worstCaseCycles);
-        fibonnacciAuxiliar = fibonnacciCalculation(1000);
-        if (!consumptionTest)
+        fibonnacciAuxiliar = fibonnacciCalculation(isWorstCase[runNumber] == 0 ? baseCycles : worstCaseCycles);
+        // fibonnacciAuxiliar = fibonnacciCalculation(1000);
+        if (!consumptionTest && fibonnacciAuxiliar!=0 )
         {
 			vTaskLedToggle(taskNumber);
         }

@@ -18,8 +18,8 @@ struct taskProperties
     int taskPriority;
     int taskWorstCaseExecuteTime;
     int xDelay;
-    long xFibonnaciCycles;
-    long xFibonnaciCyclesWorstCase;
+    unsigned int xFibonnaciCycles;
+    unsigned int xFibonnaciCyclesWorstCase;
     int *xPowerConsumptionTestIsWorstCase;
 };
 #ifdef __cplusplus
