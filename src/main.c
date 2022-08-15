@@ -127,27 +127,28 @@ void vTaskLedToggle(int taskNumber);
  long fibonnacciCalculation(long cycles);
 
  bool consumptionTest = false;
+ #define lowPowerMode 1
 /*-----------------------------------------------------------*/
 
-static void vBlink(void * pvParameters){
-	int* param = (int*) pvParameters;
-	char buffer[50];
-	while(1){
-		if(*param ==3) hal_toggle_led(LED_1);
-		vTaskDelay( 250 );
-		hal_toggle_led(LED_2);
-		hal_toggle_led(LED_3);
-		vTaskDelay( 250 );
-		hal_toggle_led(LED_2);
-		vTaskDelay( 250 );
-		hal_toggle_led(LED_2);
-		hal_toggle_led(LED_3);
-		vTaskDelay( 250 );
-		hal_toggle_led(LED_2);
-		sprintf(buffer,"This is MoteIST! I am listening %d...\r\n", *param );
-		xSendSerialMessage(buffer);
-	}
-}
+// static void vBlink(void * pvParameters){
+// 	int* param = (int*) pvParameters;
+// 	char buffer[50];
+// 	while(1){
+// 		if(*param ==3) hal_toggle_led(LED_1);
+// 		vTaskDelay( 250 );
+// 		hal_toggle_led(LED_2);
+// 		hal_toggle_led(LED_3);
+// 		vTaskDelay( 250 );
+// 		hal_toggle_led(LED_2);
+// 		vTaskDelay( 250 );
+// 		hal_toggle_led(LED_2);
+// 		hal_toggle_led(LED_3);
+// 		vTaskDelay( 250 );
+// 		hal_toggle_led(LED_2);
+// 		sprintf(buffer,"This is MoteIST! I am listening %d...\r\n", *param );
+// 		xSendSerialMessage(buffer);
+// 	}
+// }
 void initTimer_A(void)
 {
     //Timer0_A3 Configuration
@@ -175,12 +176,22 @@ void main( void )
 	
 	setupTaskParameters();
 
-		int aux =37;
+		// int aux =37;
 		// xTaskCreate( vExecutionTimeTesterTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task1Properties, 4, NULL );
 
-		xTaskCreate( vDummyTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task1Properties, 4, NULL );
-		xTaskCreate( vDummyTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task2Properties, 4, NULL );
-		xTaskCreate( vDummyTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task3Properties, 4, NULL );
+		xTaskCreate( vDummyTask, "Task1", configMINIMAL_STACK_SIZE*3, &task1Properties, task1Properties.taskPriority, NULL );
+		xTaskCreate( vDummyTask, "Task2", configMINIMAL_STACK_SIZE*3, &task2Properties, task2Properties.taskPriority, NULL );
+		xTaskCreate( vDummyTask, "Task3", configMINIMAL_STACK_SIZE*3, &task3Properties, task3Properties.taskPriority, NULL );
+
+ 		consumptionTest = true;
+	if(!consumptionTest){
+		    char buffer[100];
+    sprintf(buffer, "[Starting]\r\n");
+    xSendSerialMessage(buffer);
+	} 
+
+
+	
 
 		/* Start the scheduler. */
 		vTaskStartScheduler();
@@ -259,7 +270,7 @@ void vApplicationIdleHook( void )
 	just enters a low(ish) power mode. */
 	//__bis_SR_register( LPM1_bits + GIE );
 	#if (config_SLEEP_ON_IDLE != 0)
-    __bis_SR_register(LPM3_bits + GIE);
+    __bis_SR_register(LPM0_bits + GIE);
 #endif
 }
 /*-----------------------------------------------------------*/
@@ -291,91 +302,95 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
 /*-----------------------------------------------------------*/
 long fibonnacciCalculation(long cycles)
 {
-    long a = 0, b = 1, i;
+    long a = 0, b = 1, i,j;
 
-    for (i = 0; i < cycles; i++)
+for (j = 0; j < 100; j++)
+{
+	    for (i = 0; i < cycles; i++)
     {
         long nextTerm = a + b;
         a = b;
         b = nextTerm;
     }
+}
+
     return a;
 }
 
 /*-----------------------------------------------------------*/
 
-// Task for testing the pvParameters
-void vDummyTask3(void *pvParameters)
-{
-    char buffer[100];
-    /* Unpack parameters into local variables for ease of interpretation */
-    struct taskProperties *parameters = (struct taskProperties *) pvParameters;
-    const TickType_t xDelay = parameters->xDelay / portTICK_PERIOD_MS;
-    int baseCycles = parameters->xFibonnaciCycles;
-    int worstCaseCycles = parameters->xFibonnaciCyclesWorstCase;
-    int *isWorstCase = parameters->xPowerConsumptionTestIsWorstCase;
-    int taskNumber = parameters->taskNumber;
+// // Task for testing the pvParameters
+// void vDummyTask3(void *pvParameters)
+// {
+//     char buffer[100];
+//     /* Unpack parameters into local variables for ease of interpretation */
+//     struct taskProperties *parameters = (struct taskProperties *) pvParameters;
+//     const TickType_t xDelay = parameters->xDelay / portTICK_PERIOD_MS;
+//     int baseCycles = parameters->xFibonnaciCycles;
+//     int worstCaseCycles = parameters->xFibonnaciCyclesWorstCase;
+//     int *isWorstCase = parameters->xPowerConsumptionTestIsWorstCase;
+//     int taskNumber = parameters->taskNumber;
 
-    /* Define local variables for counting runs and delays */
-    TickType_t xLastWakeTime = 0;
-    int fibonnacciAuxiliar = 0;
-    int runNumber = 0;
-    int aux = 0;
+//     /* Define local variables for counting runs and delays */
+//     TickType_t xLastWakeTime = 0;
+//     int fibonnacciAuxiliar = 0;
+//     int runNumber = 0;
+//     int aux = 0;
 
-    sprintf(buffer, "[Task%d - Delay: %d]\r\n", taskNumber+1,xDelay);
-    xSendSerialMessage(buffer);
-    sprintf(buffer, "[Task%d - baseCycles: %d]\r\n", taskNumber+1,baseCycles);
-    xSendSerialMessage(buffer);
-    sprintf(buffer, "[Task%d - WorstCase: %d]\r\n", taskNumber+1,worstCaseCycles);
-    xSendSerialMessage(buffer);
-    sprintf(buffer, "[Task%d - taskNumber: %d]\r\n", taskNumber+1,isWorstCase[4]);
-    xSendSerialMessage(buffer);
+//     sprintf(buffer, "[Task%d - Delay: %d]\r\n", taskNumber+1,xDelay);
+//     xSendSerialMessage(buffer);
+//     sprintf(buffer, "[Task%d - baseCycles: %d]\r\n", taskNumber+1,baseCycles);
+//     xSendSerialMessage(buffer);
+//     sprintf(buffer, "[Task%d - WorstCase: %d]\r\n", taskNumber+1,worstCaseCycles);
+//     xSendSerialMessage(buffer);
+//     sprintf(buffer, "[Task%d - taskNumber: %d]\r\n", taskNumber+1,isWorstCase[4]);
+//     xSendSerialMessage(buffer);
 
-    uint16_t start=0,end=0;
-    initTimer_A();
-    for (;;)
-    {
+//     uint16_t start=0,end=0;
+//     initTimer_A();
+//     for (;;)
+//     {
 
-        start=vGetCounterTimer1();
-        fibonnacciAuxiliar = fibonnacciCalculation(1310);
-        end =vGetCounterTimer1();
-        sprintf(buffer, "[Task1 - timer for 1 tick: %u]\r\n", end-start);
-        xSendSerialMessage(buffer);
-        switch (taskNumber)
-        {
-        case 0:
-            hal_toggle_led(LED_1);
-            break;
-        case 1:
-            hal_toggle_led(LED_2);
-            break;
-        case 2:
-            hal_toggle_led(LED_3);
-            break;
-        }
+//         start=vGetCounterTimer1();
+//         fibonnacciAuxiliar = fibonnacciCalculation(1310);
+//         end =vGetCounterTimer1();
+//         sprintf(buffer, "[Task1 - timer for 1 tick: %u]\r\n", end-start);
+//         xSendSerialMessage(buffer);
+//         switch (taskNumber)
+//         {
+//         case 0:
+//             hal_toggle_led(LED_1);
+//             break;
+//         case 1:
+//             hal_toggle_led(LED_2);
+//             break;
+//         case 2:
+//             hal_toggle_led(LED_3);
+//             break;
+//         }
         
-        vTaskDelayUntil(&xLastWakeTime, 100);
-    }
+//         vTaskDelayUntil(&xLastWakeTime, 100);
+//     }
 
-    for (;;)
-    {
+//     for (;;)
+//     {
 
-                switch (taskNumber)
-        {
-        case 0:
-            hal_toggle_led(LED_1);
-            break;
-        case 1:
-            hal_toggle_led(LED_2);
-            break;
-        case 2:
-            hal_toggle_led(LED_3);
-            break;
-        }
+//                 switch (taskNumber)
+//         {
+//         case 0:
+//             hal_toggle_led(LED_1);
+//             break;
+//         case 1:
+//             hal_toggle_led(LED_2);
+//             break;
+//         case 2:
+//             hal_toggle_led(LED_3);
+//             break;
+//         }
 
-        vTaskDelayUntil(&xLastWakeTime, xDelay);
-    }
-}
+//         vTaskDelayUntil(&xLastWakeTime, xDelay);
+//     }
+// }
 // Test application (Still not done)
 void vDummyTask(void *pvParameters)
 {
@@ -391,20 +406,23 @@ void vDummyTask(void *pvParameters)
 
     /* Define local variables for counting runs and delays */
     TickType_t xLastWakeTime = 0;
-    int fibonnacciAuxiliar = 0;
+    volatile int fibonnacciAuxiliar = 0;
     int runNumber = 0;
     int aux = 0;
 
-    // sprintf(buffer, "[Task %d - Delay: %d]\r\n", taskNumber, xDelay);
-    // xSendSerialMessage(buffer);
+    if(!consumptionTest){
+    	    sprintf(buffer, "[Task %d - Delay: %d]\r\n", taskNumber, xDelay);
+    	xSendSerialMessage(buffer);
+    }
+
     // sprintf(buffer, "[Task %d - baseCycles: %u]\r\n", taskNumber,baseCycles);
     // xSendSerialMessage(buffer);
     // sprintf(buffer, "[Task %d - WorstCase: %u]\r\n", taskNumber,worstCaseCycles);
     // xSendSerialMessage(buffer);
     // sprintf(buffer, "[Task %d - taskNumber: %d]\r\n", taskNumber,isWorstCase[4]);
     // xSendSerialMessage(buffer);
-    // uint16_t start=0,end=0;
-    // initTimer_A();
+    uint16_t start=0,end=0;
+    initTimer_A();
     // for (;;)
     // {
 
@@ -441,12 +459,20 @@ void vDummyTask(void *pvParameters)
         if (!consumptionTest)
         {
 			vTaskLedToggle(taskNumber);
+			       			sprintf(buffer, "[Task%d - Start]\r\n", taskNumber);
+        	xSendSerialMessage(buffer);
         }
+
         fibonnacciAuxiliar = fibonnacciCalculation(isWorstCase[runNumber] == 0 ? baseCycles : worstCaseCycles);
+        
+
+
         // fibonnacciAuxiliar = fibonnacciCalculation(1000);
         if (!consumptionTest && fibonnacciAuxiliar!=0 )
         {
 			vTaskLedToggle(taskNumber);
+			sprintf(buffer, "[Task%d - timer for %d - time]\r\n", taskNumber, fibonnacciAuxiliar);
+        	xSendSerialMessage(buffer);
         }
         runNumber++;
         if (runNumber > 7)
@@ -468,25 +494,25 @@ void vDummyTask(void *pvParameters)
 }
 /*-----------------------------------------------------------*/
 
-void configureADC()
-{
-    // Configure ADC12
-    ADC12CTL0 = ADC12SHT0_2 | ADC12ON; // Cycle Sample Time, ADC On
-    ADC12CTL1 = ADC12SHP;              // Source clock is sample timer
-    ADC12CTL2 |= ADC12RES_2;           // 12-bit conversion
-                                       // ADC12IER0 |= ADC12IE0; // Interrupt MEM0
-    // ADC12MCTL0 |= ADC12INCH_4 | ADC12VRSEL_3; // Select A4, Vref = 2.5V
-}
+// void configureADC()
+// {
+//     // Configure ADC12
+//     ADC12CTL0 = ADC12SHT0_2 | ADC12ON; // Cycle Sample Time, ADC On
+//     ADC12CTL1 = ADC12SHP;              // Source clock is sample timer
+//     ADC12CTL2 |= ADC12RES_2;           // 12-bit conversion
+//                                        // ADC12IER0 |= ADC12IE0; // Interrupt MEM0
+//     // ADC12MCTL0 |= ADC12INCH_4 | ADC12VRSEL_3; // Select A4, Vref = 2.5V
+// }
 
-float sampleADC()
-{
-    ADC12CTL0 |= ADC12ENC | ADC12SC; // Sampling and conversion start
-    while (!(ADC12IFG & BIT0))
-        ;
-    return (ADC12MEM0 * (2500.0f / 4096.0f)) / 5.0f;
-    // __bis_SR_register(LPM0_bits + GIE); // LPM0, ADC12_ISR will force exit
-    // __no_operation(); // For debug only
-}
+// float sampleADC()
+// {
+//     ADC12CTL0 |= ADC12ENC | ADC12SC; // Sampling and conversion start
+//     while (!(ADC12IFG & BIT0))
+//         ;
+//     return (ADC12MEM0 * (2500.0f / 4096.0f)) / 5.0f;
+//     // __bis_SR_register(LPM0_bits + GIE); // LPM0, ADC12_ISR will force exit
+//     // __no_operation(); // For debug only
+// }
 
 void vTaskLedToggle(int taskNumber){
 	            switch (taskNumber)

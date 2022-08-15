@@ -1,3 +1,8 @@
+main.c: In function ‘main’:
+main.c:189:0: error: unterminated #else
+main.c:206:5: error: expected declaration or statement at end of input
+main.c: At top level:
+main.c:121:13: warning: ‘prvSetupHardware’ used but never defined [enabled by default]
 FreeRTOS/tasks.c: In function ‘prvInitialiseNewTask’:
 FreeRTOS/tasks.c:854:50: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
 FreeRTOS/tasks.c:854:28: warning: cast to pointer from integer of different size [-Wint-to-pointer-cast]
@@ -15,3 +20,4 @@ FreeRTOS/include/FreeRTOS.h:790:0: note: this is the location of the previous de
 MoteIST_LOW_POWER.c:547:5: warning: conflicting types for built-in function ‘pow’ [enabled by default]
 testApplication.c: In function ‘setupTaskParameters’:
 testApplication.c:23:5: warning: incompatible implicit declaration of built-in function ‘memcpy’ [enabled by default]
+msp430-gcc: error: main.o: No such file or directory

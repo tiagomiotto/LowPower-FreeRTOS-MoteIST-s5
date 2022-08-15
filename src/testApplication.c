@@ -15,7 +15,7 @@ extern "C"
 
     task1Properties.taskNumber = 0;
     task1Properties.taskPriority = 4;
-    task1Properties.xDelay = 80;
+    task1Properties.xDelay = 8000;
     task1Properties.taskWorstCaseExecuteTime = 30;
     task1Properties.xFibonnaciCycles = fibonnaciCycles1MS * (task1Properties.taskWorstCaseExecuteTime/2.0);
     task1Properties.xFibonnaciCyclesWorstCase = fibonnaciCycles1MS * task1Properties.taskWorstCaseExecuteTime; // Roughly 800ms at 96Mhz
@@ -24,7 +24,7 @@ extern "C"
 
     task2Properties.taskNumber = 1;
     task2Properties.taskPriority = 3;
-    task2Properties.xDelay = 100;
+    task2Properties.xDelay = 10000;
     task2Properties.taskWorstCaseExecuteTime = 20;
     task2Properties.xFibonnaciCycles = fibonnaciCycles1MS * (task2Properties.taskWorstCaseExecuteTime/2.0);
     task2Properties.xFibonnaciCyclesWorstCase = fibonnaciCycles1MS * task2Properties.taskWorstCaseExecuteTime;
@@ -33,7 +33,7 @@ extern "C"
 
     task3Properties.taskNumber = 2;
     task3Properties.taskPriority = 2;
-    task3Properties.xDelay = 140;
+    task3Properties.xDelay = 14000;
     task3Properties.taskWorstCaseExecuteTime = 10;
     task3Properties.xFibonnaciCycles = fibonnaciCycles1MS * (task3Properties.taskWorstCaseExecuteTime/2.0);
     task3Properties.xFibonnaciCyclesWorstCase = fibonnaciCycles1MS * task3Properties.taskWorstCaseExecuteTime;

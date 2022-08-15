@@ -113,7 +113,7 @@ case configTICK_VECTOR is set to TIMER0_A0_VECTOR. */
 #define ulReloadValueForOneTick	(usACLK_Frequency_Hz / configTICK_RATE_HZ)
 #define portACLK_DIVIDER				64
 #define ulReloadValueForOneTickTicklessTimer	(ulReloadValueForOneTick / portACLK_DIVIDER)
-#define config_SLEEP_ON_IDLE 0
+#define config_SLEEP_ON_IDLE 1
 
 
 #endif /* FREERTOS_CONFIG_H */
