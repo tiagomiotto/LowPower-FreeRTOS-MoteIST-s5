@@ -25,9 +25,10 @@
 
 */
 
-#define putchar(c) c
+#define putchar(c) xSendSerialMessageN(c,1)
 
 #include <stdarg.h>
+#include "./MoteModules/include/MOTEIST_serial.h"
 
 static void printchar(char **str, int c)
 {

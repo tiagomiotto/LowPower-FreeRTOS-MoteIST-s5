@@ -59,9 +59,9 @@
  * the poll rate to ensure debouncing is not necessary and that the task does
  * not use all the available CPU processing time.
  *
- * Button Interrupt - The select button on the joystick input device is 
- * configured to generate an external interrupt.  The handler for this interrupt 
- * sends a message to LCD task, which then prints out a string to say the 
+ * Button Interrupt - The select button on the joystick input device is
+ * configured to generate an external interrupt.  The handler for this interrupt
+ * sends a message to LCD task, which then prints out a string to say the
  * joystick select button was pressed.
  *
  * Idle Hook - The idle hook is a function that is called on each iteration of
@@ -72,10 +72,10 @@
  * driven tasks, and slowing the tick interrupt frequency, etc.
  *
  * "Check" callback function - Called each time the 'check' timer expires.  The
- * check timer executes every five seconds.  Its main function is to check that 
- * all the standard demo tasks are still operational.  Each time it executes it 
- * sends a status code to the LCD task.  The LCD task interprets the code and 
- * displays an appropriate message - which will be PASS if no tasks have 
+ * check timer executes every five seconds.  Its main function is to check that
+ * all the standard demo tasks are still operational.  Each time it executes it
+ * sends a status code to the LCD task.  The LCD task interprets the code and
+ * displays an appropriate message - which will be PASS if no tasks have
  * reported any errors, or a message stating which task has reported an error.
  *
  * "Reg test" tasks - These fill the registers with known values, then check
@@ -85,11 +85,11 @@
  * test loop.  A register containing an unexpected value is indicative of an
  * error in the context switching mechanism and will result in a branch to a
  * null loop - which in turn will prevent the check variable from incrementing
- * any further and allow the check timer callback (described a above) to 
- * determine that an error has occurred.  The nature of the reg test tasks 
+ * any further and allow the check timer callback (described a above) to
+ * determine that an error has occurred.  The nature of the reg test tasks
  * necessitates that they are written in assembly code.
  *
- * Tick hook function - called inside the RTOS tick function, this simple 
+ * Tick hook function - called inside the RTOS tick function, this simple
  * example does nothing but toggle an LED.
  *
  * *NOTE 1* vApplicationSetupTimerInterrupt() is called by the kernel to let
@@ -113,7 +113,7 @@
 #include "hal_MSP-430F5438-MoteIST.h"
 #include "./MoteModules/include/MOTEIST_serial.h"
 #include "MoteIST_LOW_POWER.h"
-
+// #include "seria"
 
 /*
  * Configures clocks, LCD, port pints, etc. necessary to execute this demo.
@@ -121,13 +121,14 @@
 static void prvSetupHardware( void );
 void vTaskLedToggle(int taskNumber);
 
- void vDummyTask(void *pvParameters);
- void vDummyTask3(void *pvParameters);
- void vDummyTask2(void *pvParameters);
- long fibonnacciCalculation(long cycles);
+void vDummyTask(void *pvParameters);
+void vDummyTask3(void *pvParameters);
+void vDummyTask2(void *pvParameters);
+long fibonnacciCalculation(long cycles);
 
- bool consumptionTest = false;
- #define lowPowerMode 1
+bool consumptionTest = false;
+#define LOW_POWER_MODE 2
+#define CONSUMPTION_TEST 1
 /*-----------------------------------------------------------*/
 
 // static void vBlink(void * pvParameters){
@@ -149,19 +150,19 @@ void vTaskLedToggle(int taskNumber);
 // 		xSendSerialMessage(buffer);
 // 	}
 // }
-void initTimer_A(void)
-{
-    //Timer0_A3 Configuration
+// void initTimer_A(void)
+// {
+// 	//Timer0_A3 Configuration
 
-    TA1CCR0 = 0; //Initially, Stop the Timer
-    /* Clear everything to start with. */
-    TA1CTL |= TACLR;
-    TA1CCTL0 |= CCIE; //Enable interrupt for CCR0.
-    TA1CTL = TASSEL_2 + ID_0 + MC_2; //Select SMCLK, SMCLK/1, Up Mode
-}
-uint16_t vGetCounterTimer1(void){
-    return TA1R;
-}
+// 	TA1CCR0 = 0; //Initially, Stop the Timer
+// 	/* Clear everything to start with. */
+// 	TA1CTL |= TACLR;
+// 	TA1CCTL0 |= CCIE; //Enable interrupt for CCR0.
+// 	TA1CTL = TASSEL_2 + ID_0 + MC_2; //Select SMCLK, SMCLK/1, Up Mode
+// }
+// uint16_t vGetCounterTimer1(void) {
+// 	return TA1R;
+// }
 
 /*-----------------------------------------------------------*/
 
@@ -173,34 +174,56 @@ void main( void )
 	hal_setup_leds();
 	xSerialPortInit(200);
 
-	
+
 	setupTaskParameters();
 
-		// int aux =37;
-		// xTaskCreate( vExecutionTimeTesterTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task1Properties, 4, NULL );
+	// int aux =37;
+	// xTaskCreate( vExecutionTimeTesterTask, "Reg2", configMINIMAL_STACK_SIZE*4, &task1Properties, 4, NULL );
 
-		xTaskCreate( vDummyTask, "Task1", configMINIMAL_STACK_SIZE*3, &task1Properties, task1Properties.taskPriority, NULL );
-		xTaskCreate( vDummyTask, "Task2", configMINIMAL_STACK_SIZE*3, &task2Properties, task2Properties.taskPriority, NULL );
-		xTaskCreate( vDummyTask, "Task3", configMINIMAL_STACK_SIZE*3, &task3Properties, task3Properties.taskPriority, NULL );
+	xTaskCreate( vDummyTask, "Task1", configMINIMAL_STACK_SIZE * 3, &task1Properties, task1Properties.taskPriority, NULL );
+	xTaskCreate( vDummyTask, "Task2", configMINIMAL_STACK_SIZE * 3, &task2Properties, task2Properties.taskPriority, NULL );
+	xTaskCreate( vDummyTask, "Task3", configMINIMAL_STACK_SIZE * 3, &task3Properties, task3Properties.taskPriority, NULL );
 
- 		consumptionTest = true;
-	if(!consumptionTest){
-		    char buffer[100];
-    sprintf(buffer, "[Starting]\r\n");
-    xSendSerialMessage(buffer);
-	} 
+	// consumptionTest = true;
 
 
+#ifdef LOW_POWER_MODE
 	
+	// #ifndef CONSUMPTION_TEST
+	
+		char buffer[100];
+		sprintf(buffer, "[Starting Low Power %d]\r\n", LOW_POWER_MODE);
+		xSendSerialMessage(buffer);
+	
+	// #endif
+	/* Start the scheduller in Low Power Mode */
+	int main_taskWorstCaseComputeTime[3] = {(task1Properties.taskWorstCaseExecuteTime*100) / portTICK_PERIOD_MS ,
+	                                        (task2Properties.taskWorstCaseExecuteTime *100)/ portTICK_PERIOD_MS, (task3Properties.taskWorstCaseExecuteTime*100) / portTICK_PERIOD_MS
+	                                       };
+	int main_taskDeadlines[3] = {task1Properties.xDelay / portTICK_PERIOD_MS, task2Properties.xDelay / portTICK_PERIOD_MS,
+	                             task3Properties.xDelay / portTICK_PERIOD_MS
+	                            };
+	int main_frequencyLevels[7] = {25, 20, 16, 12, 8, 4, 2};
 
-		/* Start the scheduler. */
-		vTaskStartScheduler();
 
+	vTaskStartLowPowerScheduller(3, main_taskWorstCaseComputeTime, main_taskDeadlines, 7, main_frequencyLevels, LOW_POWER_MODE);
+
+	vTaskStartScheduler();
+#else
+
+	if (!CONSUMPTION_TEST) {
+		char buffer[100];
+		sprintf(buffer, "[Starting Normal]\r\n");
+		xSendSerialMessage(buffer);
+	}
+	/* Start the scheduler. */
+	vTaskStartScheduler();
+#endif
 	/* If all is well then this line will never be reached.  If it is reached
 	then it is likely that there was insufficient (FreeRTOS) heap memory space
 	to create the idle task.  This may have been trapped by the malloc() failed
-	hook function, if one is configured. */	
-	for( ;; );
+	hook function, if one is configured. */
+	for ( ;; );
 }
 /*-----------------------------------------------------------*/
 
@@ -212,10 +235,10 @@ void main( void )
 static void prvSetupHardware( void )
 {
 	taskDISABLE_INTERRUPTS();
-	
+
 	/* Disable the watchdog. */
 	WDTCTL = WDTPW + WDTHOLD;
-  
+
 	halBoardInit();
 
 	LFXT_Start( XT1DRIVE_0 );
@@ -269,8 +292,8 @@ void vApplicationIdleHook( void )
 	/* Called on each iteration of the idle task.  In this case the idle task
 	just enters a low(ish) power mode. */
 	//__bis_SR_register( LPM1_bits + GIE );
-	#if (config_SLEEP_ON_IDLE != 0)
-    __bis_SR_register(LPM0_bits + GIE);
+#if (config_SLEEP_ON_IDLE != 0)
+	__bis_SR_register(LPM0_bits + GIE);
 #endif
 }
 /*-----------------------------------------------------------*/
@@ -282,7 +305,7 @@ void vApplicationMallocFailedHook( void )
 	internally by FreeRTOS API functions that create tasks, queues or
 	semaphores. */
 	taskDISABLE_INTERRUPTS();
-	for( ;; );
+	for ( ;; );
 }
 /*-----------------------------------------------------------*/
 
@@ -290,31 +313,31 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
 {
 	( void ) pxTask;
 	( void ) pcTaskName;
-	
+
 	/* Run time stack overflow checking is performed if
 	configconfigCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook
 	function is called if a stack overflow is detected. */
 	taskDISABLE_INTERRUPTS();
-	for( ;; );
+	for ( ;; );
 }
 /*-----------------------------------------------------------*/
 
 /*-----------------------------------------------------------*/
 long fibonnacciCalculation(long cycles)
 {
-    long a = 0, b = 1, i,j;
+	long a = 0, b = 1, i, j;
 
-for (j = 0; j < 100; j++)
-{
-	    for (i = 0; i < cycles; i++)
-    {
-        long nextTerm = a + b;
-        a = b;
-        b = nextTerm;
-    }
-}
+	for (j = 0; j < 100; j++)
+	{
+		for (i = 0; i < cycles; i++)
+		{
+			long nextTerm = a + b;
+			a = b;
+			b = nextTerm;
+		}
+	}
 
-    return a;
+	return a;
 }
 
 /*-----------------------------------------------------------*/
@@ -368,7 +391,7 @@ for (j = 0; j < 100; j++)
 //             hal_toggle_led(LED_3);
 //             break;
 //         }
-        
+
 //         vTaskDelayUntil(&xLastWakeTime, 100);
 //     }
 
@@ -395,102 +418,113 @@ for (j = 0; j < 100; j++)
 void vDummyTask(void *pvParameters)
 {
 
-    char buffer[100];
-    /* Unpack parameters into local variables for ease of interpretation */
-    struct taskProperties *parameters = (struct taskProperties *)pvParameters;
-    const TickType_t xDelay = parameters->xDelay / portTICK_PERIOD_MS;
-    uint16_t baseCycles = parameters->xFibonnaciCycles;
-    uint16_t worstCaseCycles = parameters->xFibonnaciCyclesWorstCase;
-    int *isWorstCase = parameters->xPowerConsumptionTestIsWorstCase;
-    int taskNumber = parameters->taskNumber;
+	char buffer[100];
+	/* Unpack parameters into local variables for ease of interpretation */
+	struct taskProperties *parameters = (struct taskProperties *)pvParameters;
+	const TickType_t xDelay = parameters->xDelay / portTICK_PERIOD_MS;
+	uint16_t baseCycles = parameters->xFibonnaciCycles;
+	uint16_t worstCaseCycles = parameters->xFibonnaciCyclesWorstCase;
+	int *isWorstCase = parameters->xPowerConsumptionTestIsWorstCase;
+	int taskNumber = parameters->taskNumber;
 
-    /* Define local variables for counting runs and delays */
-    TickType_t xLastWakeTime = 0;
-    volatile int fibonnacciAuxiliar = 0;
-    int runNumber = 0;
-    int aux = 0;
+	/* Define local variables for counting runs and delays */
+	TickType_t xLastWakeTime = 0;
+	volatile int fibonnacciAuxiliar = 0;
+	int runNumber = 0;
+	int aux = 0;
 
-    if(!consumptionTest){
-    	    sprintf(buffer, "[Task %d - Delay: %d]\r\n", taskNumber, xDelay);
-    	xSendSerialMessage(buffer);
-    }
+	#ifndef CONSUMPTION_TEST
+	if (!consumptionTest) {
+		// sprintf(buffer, "[Task %d - Delay: %d]\r\n", taskNumber, xDelay);
+		// xSendSerialMessage(buffer);
+		sprintf(buffer, "[Frequency level %d]\r\n", getCurrentFrequency());
+		xSendSerialMessage(buffer);
 
-    // sprintf(buffer, "[Task %d - baseCycles: %u]\r\n", taskNumber,baseCycles);
-    // xSendSerialMessage(buffer);
-    // sprintf(buffer, "[Task %d - WorstCase: %u]\r\n", taskNumber,worstCaseCycles);
-    // xSendSerialMessage(buffer);
-    // sprintf(buffer, "[Task %d - taskNumber: %d]\r\n", taskNumber,isWorstCase[4]);
-    // xSendSerialMessage(buffer);
-    uint16_t start=0,end=0;
-    initTimer_A();
-    // for (;;)
-    // {
+	}
+	#endif
 
-    //     start=vGetCounterTimer1();
-    //     fibonnacciAuxiliar = fibonnacciCalculation(isWorstCase[runNumber] == 0 ? baseCycles : worstCaseCycles);
-    //     end =vGetCounterTimer1();
-    //     sprintf(buffer, "[Task1 - timer for %d tick: %u | end %u, start %u]\r\n", fibonnacciAuxiliar, end-start, end,start);
-    //     xSendSerialMessage(buffer);
-    //     switch (taskNumber)
-    //     {
-    //     case 0:
-    //         hal_toggle_led(LED_1);
-    //         break;
-    //     case 1:
-    //         hal_toggle_led(LED_2);
-    //         break;
-    //     case 2:
-    //         hal_toggle_led(LED_3);
-    //         break;
-    //     }
-    //             runNumber++;
-    //     if (runNumber > 7)
-    //         runNumber = 0;
+	// sprintf(buffer, "[Task %d - baseCycles: %u]\r\n", taskNumber,baseCycles);
+	// xSendSerialMessage(buffer);
+	// sprintf(buffer, "[Task %d - WorstCase: %u]\r\n", taskNumber,worstCaseCycles);
+	// xSendSerialMessage(buffer);
+	// sprintf(buffer, "[Task %d - taskNumber: %d]\r\n", taskNumber,isWorstCase[4]);
+	// xSendSerialMessage(buffer);
+	// uint16_t start = 0, end = 0;
+	// initTimer_A();
+	// for (;;)
+	// {
 
-    //     vTaskDelayUntil(&xLastWakeTime, 1000);
-    // }
-    for (;;)
-    {
+	//     start=vGetCounterTimer1();
+	//     fibonnacciAuxiliar = fibonnacciCalculation(isWorstCase[runNumber] == 0 ? baseCycles : worstCaseCycles);
+	//     end =vGetCounterTimer1();
+	//     sprintf(buffer, "[Task1 - timer for %d tick: %u | end %u, start %u]\r\n", fibonnacciAuxiliar, end-start, end,start);
+	//     xSendSerialMessage(buffer);
+	//     switch (taskNumber)
+	//     {
+	//     case 0:
+	//         hal_toggle_led(LED_1);
+	//         break;
+	//     case 1:
+	//         hal_toggle_led(LED_2);
+	//         break;
+	//     case 2:
+	//         hal_toggle_led(LED_3);
+	//         break;
+	//     }
+	//             runNumber++;
+	//     if (runNumber > 7)
+	//         runNumber = 0;
 
-        // Cycle conserving task ready to run
-        if (dvfsMode == 2)
-            aux = cycleConservingDVSTaskReady(taskNumber, xTaskGetTickCount(), xLastWakeTime + xDelay);
-        // If not testing light up leds
-        if (!consumptionTest)
-        {
+	//     vTaskDelayUntil(&xLastWakeTime, 1000);
+	// }
+	for (;;)
+	{
+
+		// Cycle conserving task ready to run
+		if (dvfsMode == 2)
+			aux = cycleConservingDVSTaskReady(taskNumber, xTaskGetTickCount(), xLastWakeTime + xDelay);
+		// If not testing light up leds
+		#ifndef CONSUMPTION_TEST
+
 			vTaskLedToggle(taskNumber);
-			       			sprintf(buffer, "[Task%d - Start]\r\n", taskNumber);
-        	xSendSerialMessage(buffer);
-        }
+			sprintf(buffer, "[Task%d - Start]\r\n", taskNumber);
+			xSendSerialMessage(buffer);
+		
+		#endif
+		// sprintf(buffer, "[Task%d - Start]\r\n", taskNumber);
+		// 	xSendSerialMessage(buffer);
+		vTaskLedToggle(taskNumber);
+		fibonnacciAuxiliar = fibonnacciCalculation(isWorstCase[runNumber] == 0 ? baseCycles : worstCaseCycles);
+		vTaskLedToggle(taskNumber);
+		// 	sprintf(buffer, "[Task%d - timer for %d - time]\r\n", taskNumber, fibonnacciAuxiliar);
+		// 	xSendSerialMessage(buffer);
 
-        fibonnacciAuxiliar = fibonnacciCalculation(isWorstCase[runNumber] == 0 ? baseCycles : worstCaseCycles);
-        
-
-
-        // fibonnacciAuxiliar = fibonnacciCalculation(1000);
-        if (!consumptionTest && fibonnacciAuxiliar!=0 )
-        {
+		// fibonnacciAuxiliar = fibonnacciCalculation(1000);
+		#ifndef CONSUMPTION_TEST
+		if (fibonnacciAuxiliar != 0 )
+		{
 			vTaskLedToggle(taskNumber);
 			sprintf(buffer, "[Task%d - timer for %d - time]\r\n", taskNumber, fibonnacciAuxiliar);
-        	xSendSerialMessage(buffer);
-        }
-        runNumber++;
-        if (runNumber > 7)
-            runNumber = 0;
+			xSendSerialMessage(buffer);
+		}
+		#endif
+		runNumber++;
+		if (runNumber > 7)
+			runNumber = 0;
 
-        // Cycle conserving task ready finished running
-        if (dvfsMode == 2)
-            cycleConservingDVSTaskComplete(taskNumber, xTaskGetTickCount());
+		// Cycle conserving task ready finished running
+		if (dvfsMode == 2)
+			cycleConservingDVSTaskComplete(taskNumber, xTaskGetTickCount());
 
-        // If the deadline is missed suspend all and print out a code
-        if ((xTaskGetTickCount()) > xLastWakeTime + xDelay)
-        {
-            hal_toggle_leds();
-            vTaskSuspendAll();
-        }
-        // Explicar esse delay no modelo
-        vTaskDelayUntil(&xLastWakeTime, xDelay);
-    }
+		// If the deadline is missed suspend all and print out a code
+		if ((xTaskGetTickCount()) > xLastWakeTime + xDelay)
+		{
+			hal_toggle_leds();
+			vTaskSuspendAll();
+		}
+		// Explicar esse delay no modelo
+		vTaskDelayUntil(&xLastWakeTime, xDelay);
+	}
 }
 /*-----------------------------------------------------------*/
 
@@ -514,18 +548,18 @@ void vDummyTask(void *pvParameters)
 //     // __no_operation(); // For debug only
 // }
 
-void vTaskLedToggle(int taskNumber){
-	            switch (taskNumber)
-            {
-            case 0:
-                hal_toggle_led(LED_1);
-                break;
-            case 1:
-                hal_toggle_led(LED_2);
-                break;
-            case 2:
-                hal_toggle_led(LED_3);
-                break;
-            }
+void vTaskLedToggle(int taskNumber) {
+	switch (taskNumber)
+	{
+	case 0:
+		hal_toggle_led(LED_1);
+		break;
+	case 1:
+		hal_toggle_led(LED_2);
+		break;
+	case 2:
+		hal_toggle_led(LED_3);
+		break;
+	}
 }
 

@@ -56,9 +56,9 @@
 
 		P3SEL |= 0x30;             	// P3.4,5 = USCI_A0 TXD/RXD
 		UCA0CTL1 |= UCSWRST;      	// **Put state machine in reset**
-		UCA0CTL1 |= UCSSEL_2;     	// SMCLK 
-		UCA0BR0 = 0xD9;				// 25MHz 115200baud (see http://mspgcc.sourceforge.net/baudrate.html)
-		UCA0BR1 = 0x00;				// 25MHz 115200baud
+		UCA0CTL1 |= UCSSEL_2;     	// SMCLK //_1 ACLK
+		UCA0BR0 = 0x2c;				// 25MHz 115200baud (see http://mspgcc.sourceforge.net/baudrate.html)
+		UCA0BR1 = 0x0A;				// 25MHz 115200baud
 		UCA0MCTL = 0x00;			// Modulation UCBRSx=1, UCBRFx=0	
 		UCA0CTL1 &= ~UCSWRST;     	// **Initialize USCI state machine**
 	}

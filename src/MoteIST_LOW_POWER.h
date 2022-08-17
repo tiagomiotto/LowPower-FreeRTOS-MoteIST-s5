@@ -37,7 +37,7 @@ int cycleConservingDVSTaskReady(int taskNumber, int currentTick, int taskNextExe
 int cycleConservingDVSTaskComplete(int taskNumber, int currentTick);
 void vTaskStartLowPowerScheduller(int main_numberOfTasks, int *main_taskWorstCaseComputeTime, int *main_taskDeadlines, int main_availableFrequencyLevels, int *main_frequencyStages, int main_mode);
 bool sufficientSchedulabilityTest( );
-
+int getCurrentFrequency();
 // int cycleConservingDVSFrequencySelectorEDF();
 // void cycleConservingDVSTaskReadyEDF(int taskNumber, int currentTick);
 // void cycleConservingDVSTaskCompleteEDF(int taskNumber, int actualTaskExecutionTicks);
