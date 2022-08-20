@@ -28,6 +28,7 @@ static int currentFrequencyLevel;
 static int* d_i;
 static int* c_lefti;
 
+static int auxiliarValue =0;
 // Default values for frequency levels
 const int default_frequencyStages[] = {24, 21, 18, 15, 12, 9, 6, 3};
 const int default_availableFrequencyLevels = 8;
@@ -244,6 +245,9 @@ static int frequencyLevelSelector(int level) {
 
 	if (level > availableFrequencyLevels - 1) level = availableFrequencyLevels - 1;
 	else if (level < 0) level = 0;
+	if(level == currentFrequencyLevel) return frequencyStages[level];
+	
+	currentFrequencyLevel = level;
 	hal430SetSystemClock( frequencyStages[level] * 1000000, 32768 );
 	return frequencyStages[level];
 }
@@ -263,9 +267,6 @@ void setupDVFS(int main_numberOfTasks, int* main_taskWorstCaseComputeTime, int* 
 	memcpy(frequencyStages, main_frequencyStages, sizeof(int) * availableFrequencyLevels);
 }
 
-int getCurrentFrequency() {
-	return frequencyStages[currentFrequencyLevel];
-}
 
 // void default_setupDVFS(int main_numberOfTasks, int* main_taskWorstCaseComputeTime, int* main_taskDeadlines, int main_mode){
 // 	numberOfTasks = main_numberOfTasks;
@@ -316,9 +317,9 @@ staticVoltageScalingFrequencyLevelSelector()
 	}
 	if (!validAlpha && i == 0) return -1;
 	selectedFrequencyLevel = i - 1;
-	currentFrequencyLevel = selectedFrequencyLevel;
-	return frequencyLevelSelector(selectedFrequencyLevel);
-	// return currentFrequencyLevel;
+	// currentFrequencyLevel = selectedFrequencyLevel;
+	frequencyLevelSelector(selectedFrequencyLevel);
+	return selectedFrequencyLevel;
 	// }
 
 	// if (mode == 1) //EDF
@@ -453,8 +454,15 @@ static int cycleConservingDVSFrequencySelector(int currentTick)
 			desiredFrequencyLevel++;
 		}
 	}
+	// if(desiredFrequencyLevel == 3) LED_PORT_OUT ^= LED_3;
+	if(desiredFrequencyLevel & 4 ) LED_PORT_OUT ^= LED_1;
+	if(desiredFrequencyLevel & 2 ) LED_PORT_OUT ^= LED_2;
+	if(desiredFrequencyLevel & 1 ) LED_PORT_OUT ^= LED_3;
+
+
 	// Esta a causar erros aqui for some reason (devia ser assim o codigo antigo quando calculava
 	// para ir pra o nivel maximo nao ia, fazendo com que deadlines fossem missed)
+	// currentFrequencyLevel = desiredFrequencyLevel;
 	frequencyLevelSelector(desiredFrequencyLevel);
 	return maxTicksUntilNextDeadline;
 }
@@ -481,6 +489,7 @@ int cycleConservingDVSTaskReady(int taskNumber, int currentTick, int taskNextExe
 {
 	taskDeadlines[taskNumber] = taskNextExecution;
 	c_lefti[taskNumber] = taskWorstCaseComputeTime[taskNumber];
+	
 	int s_m = findNextDeadline(taskDeadlines, currentTick) - currentTick;
 
 	// float ceilAux = (s_m * (frequencyStages[frequencyChosenSVS] * 1.0) / (frequencyStages[0] * 1.0));
@@ -491,11 +500,11 @@ int cycleConservingDVSTaskReady(int taskNumber, int currentTick, int taskNextExe
 
 	// int s_j = ceil(s_m * (frequencyStages[currentFrequencyLevel] * 1.0) / (frequencyStages[0] * 1.0));
 	cycleConservingDVSAllocateCycles(s_j);
-
+	auxiliarValue = s_j;
 	aux = cycleConservingDVSFrequencySelector(currentTick);
 	return aux;
 }
-
+ 
 int cycleConservingDVSTaskComplete(int taskNumber, int currentTick)
 {
 	c_lefti[taskNumber] = 0;
@@ -504,6 +513,11 @@ int cycleConservingDVSTaskComplete(int taskNumber, int currentTick)
 	return cycleConservingDVSFrequencySelector(currentTick);
 }
 #endif
+int getCurrentFrequency() {
+
+	return auxiliarValue;
+	// return frequencyStages[currentFrequencyLevel];
+}
 
 // int setupPowerSaving(int main_numberOfTasks, int* main_taskWorstCaseComputeTime, int* main_taskDeadlines, int main_availableFrequencyLevels, int* main_frequencyStages,int main_mode){
 
@@ -615,6 +629,8 @@ void vTaskStartLowPowerScheduller(int main_numberOfTasks, int *main_taskWorstCas
 		break;
 	}
 }
+
+
 
 
 

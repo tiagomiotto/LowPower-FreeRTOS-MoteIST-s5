@@ -191,9 +191,9 @@ void main( void )
 	
 	// #ifndef CONSUMPTION_TEST
 	
-		char buffer[100];
-		sprintf(buffer, "[Starting Low Power %d]\r\n", LOW_POWER_MODE);
-		xSendSerialMessage(buffer);
+		// char buffer[100];
+		// sprintf(buffer, "[Starting Low Power %d]\r\n", LOW_POWER_MODE);
+		// xSendSerialMessage(buffer);
 	
 	// #endif
 	/* Start the scheduller in Low Power Mode */
@@ -442,7 +442,8 @@ void vDummyTask(void *pvParameters)
 
 	}
 	#endif
-
+		// sprintf(buffer, "[Frequency level %d]\r\n", getCurrentFrequency());
+		// xSendSerialMessage(buffer);
 	// sprintf(buffer, "[Task %d - baseCycles: %u]\r\n", taskNumber,baseCycles);
 	// xSendSerialMessage(buffer);
 	// sprintf(buffer, "[Task %d - WorstCase: %u]\r\n", taskNumber,worstCaseCycles);
@@ -491,11 +492,13 @@ void vDummyTask(void *pvParameters)
 			xSendSerialMessage(buffer);
 		
 		#endif
+		// 			sprintf(buffer, "[Task%d Start / Frequency  %d]\r\n", taskNumber,getCurrentFrequency());
+		// xSendSerialMessage(buffer);
 		// sprintf(buffer, "[Task%d - Start]\r\n", taskNumber);
 		// 	xSendSerialMessage(buffer);
-		vTaskLedToggle(taskNumber);
+		// vTaskLedToggle(taskNumber);
 		fibonnacciAuxiliar = fibonnacciCalculation(isWorstCase[runNumber] == 0 ? baseCycles : worstCaseCycles);
-		vTaskLedToggle(taskNumber);
+		// vTaskLedToggle(taskNumber);
 		// 	sprintf(buffer, "[Task%d - timer for %d - time]\r\n", taskNumber, fibonnacciAuxiliar);
 		// 	xSendSerialMessage(buffer);
 
@@ -516,10 +519,14 @@ void vDummyTask(void *pvParameters)
 		if (dvfsMode == 2)
 			cycleConservingDVSTaskComplete(taskNumber, xTaskGetTickCount());
 
+		// sprintf(buffer, "[Task%d End / Frequency %d]\r\n", taskNumber, getCurrentFrequency());
+		// xSendSerialMessage(buffer);
+
 		// If the deadline is missed suspend all and print out a code
 		if ((xTaskGetTickCount()) > xLastWakeTime + xDelay)
 		{
-			hal_toggle_leds();
+			vTaskLedToggle(0);
+			vTaskLedToggle(1);
 			vTaskSuspendAll();
 		}
 		// Explicar esse delay no modelo
