@@ -36,6 +36,8 @@
 
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
+#include "config.h"
+
 
 /*-----------------------------------------------------------
  * Application specific definitions.
@@ -95,7 +97,7 @@ to exclude the API function. */
 #define INCLUDE_vTaskDelayUntil			1
 #define INCLUDE_vTaskDelay				1
 
-/* The MSP430X port uses a callback function to configure its tick interrupt.
+/* The MSP430 port uses a callback function to configure its tick interrupt.
 This allows the application to choose the tick interrupt source.
 configTICK_VECTOR must also be set in FreeRTOSConfig.h to the correct interrupt
 vector for the chosen tick interrupt source.  This implementation of
@@ -105,21 +107,7 @@ case configTICK_VECTOR is set to TIMER0_A0_VECTOR. */
 
 #define configASSERT( x ) if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); for( ;; ); }
 
-/* User defined defines */
-#define configUSE_IDLE_HOOK				0
 
-
-#define CONFIG_FREERTOS_TICK_COUNT      1
-#define portACLK_FREQUENCY_HZ			( ( TickType_t ) 32768 )
-#define usACLK_Frequency_Hz	32768
-#define ulReloadValueForOneTick	(usACLK_Frequency_Hz / configTICK_RATE_HZ)
-#define timer1ACLK_DIVIDER				4
-#define ulReloadValueForOneTickTicklessTimer	(ulReloadValueForOneTick / timer1ACLK_DIVIDER)
-#define portSUPPRESS_TICKS_AND_SLEEP( xIdleTime ) vApplicationSleep( xIdleTime )
-
-#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP  4
-#define maxSUPPRESStICKS (65535 / ulReloadValueForOneTickTicklessTimer)
-#define configUSE_TICKLESS_IDLE 2
 // #define CONSUMPTION_TEST 1
 
 

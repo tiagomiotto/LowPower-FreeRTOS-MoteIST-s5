@@ -161,19 +161,6 @@ static void vFrequencyStairTask(void * pvParameters){
 		// xSendSerialMessage(buffer);
 	}
 }
-void initTimer_A(void)
-{
-	//Timer0_A3 Configuration
-
-	TA1CCR0 = 0; //Initially, Stop the Timer
-	/* Clear everything to start with. */
-	TA1CTL |= TACLR;
-	TA1CCTL0 |= CCIE; //Enable interrupt for CCR0.
-	TA1CTL = TASSEL_2 + ID_0 + MC_2; //Select SMCLK, SMCLK/1, Up Mode
-}
-uint16_t vGetCounterTimer1(void) {
-	return TA1R;
-}
 
 /*-----------------------------------------------------------*/
 

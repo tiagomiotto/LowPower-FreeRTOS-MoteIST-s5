@@ -6,6 +6,6 @@ FreeRTOS/portable/MemMang/heap_1.c: In function ‘pvPortMalloc’:
 FreeRTOS/portable/MemMang/heap_1.c:91:48: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
 In file included from FreeRTOS/portable/GCC/MSP430F5438a/port.c:36:0:
 /usr/local/msp430/bin/../lib/gcc/msp430/4.7.0/../../../../msp430/include/signal.h:43:2: warning: #warning msp430-libc <signal.h> deprecated, using <legacymsp430.h> [-Wcpp]
-MoteIST_LOW_POWER.c:562:5: warning: conflicting types for built-in function ‘pow’ [enabled by default]
+MoteIST_LOW_POWER.c:555:5: warning: conflicting types for built-in function ‘pow’ [enabled by default]
 testApplication.c: In function ‘setupTaskParameters’:
 testApplication.c:23:5: warning: incompatible implicit declaration of built-in function ‘memcpy’ [enabled by default]

@@ -11,7 +11,7 @@
 /* Holds the maximum number of ticks that can be suppressed - which is
 basically how far into the future an interrupt can be generated. Set during
 initialisation. */
-TickType_t xMaximumPossibleSuppressedTicks = maxSUPPRESStICKS;
+TickType_t xMaximumPossibleSuppressedTicks = maxSUPPRESSED_TICKS;
 
 uint16_t reloadTime = 0;
 
@@ -40,14 +40,7 @@ static int frequencyChosenSVS = 0;
 
 
 
-// #define configPRE_SLEEP_PROCESSING(x) __bis_SR_register( LPM1_bits + GIE )
 
-//__bis_SR_register( LPM1_bits + GIE ); \
-
-// 	LPC_GPIO1->FIOPIN = (1 << 23);
-
-
-// #define configPOST_SLEEP_PROCESSING(x) hal_toggle_led(LED_2)
 // 	LPC_GPIO1->FIOPIN = (0 << 23);
 // #define configUSE_TICKLESS_IDLE 2
 
@@ -141,13 +134,13 @@ void vApplicationSleep(TickType_t xExpectedIdleTime)
 		time variable must remain unmodified, so a copy is taken. */
 
 		xModifiableIdleTime = xExpectedIdleTime;
-		// configPRE_SLEEP_PROCESSING(xModifiableIdleTime);
-		__bis_SR_register( LPM3_bits + GIE );
-		if (xModifiableIdleTime > 0)
-		{
-			// __nop(); //wait FOR INTERRUPT?
-		}
-		// configPOST_SLEEP_PROCESSING(xExpectedIdleTime);
+		 // __bis_SR_register( LPM3_bits + GIE );
+		configPRE_SLEEP_PROCESSING(xModifiableIdleTime);
+		// if (xModifiableIdleTime > 0)
+		// {
+		// 	// __nop(); //wait FOR INTERRUPT?
+		// }
+		configPOST_SLEEP_PROCESSING(xExpectedIdleTime);
 
 
 
