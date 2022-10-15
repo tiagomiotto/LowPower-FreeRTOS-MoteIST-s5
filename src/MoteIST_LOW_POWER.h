@@ -13,7 +13,12 @@
 // const int availableFrequencyLevels = 9;
 // extern volatile int currentFrequencyLevel;
 // extern volatile short periodicTickIncrementCount;
-// extern volatile bool frequencyChanged;
+// extern volatile bool frequencyChanged;;
+
+
+/* Flag set from the tick interrupt to allow the sleep processing to know if
+sleep mode was exited because of an tick interrupt or a different interrupt. */
+volatile uint16_t ulTickFlag;
 
 void vApplicationSleep(TickType_t xExpectedIdleTime);
 short dvfsMode;

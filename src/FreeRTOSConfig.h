@@ -50,13 +50,12 @@
  *----------------------------------------------------------*/
 
 #define configUSE_PREEMPTION			1
-#define configUSE_IDLE_HOOK				1
 #define configUSE_TICK_HOOK				1
 #define configCPU_CLOCK_HZ				( 25000000UL )
 #define configLFXT_CLOCK_HZ       		( 32768L )
 #define configTICK_RATE_HZ				( ( TickType_t ) 100 )
 #define configMAX_PRIORITIES			( 5 )
-#define configTOTAL_HEAP_SIZE			( ( size_t ) ( 14 * 1024 ) )
+#define configTOTAL_HEAP_SIZE			( ( size_t ) ( 10 * 1024 ) )
 #define configMAX_TASK_NAME_LEN			( 10 )
 #define configUSE_TRACE_FACILITY		0
 #define configUSE_16_BIT_TICKS			1
@@ -64,7 +63,7 @@
 #define configUSE_MUTEXES				1
 #define configQUEUE_REGISTRY_SIZE		0
 #define configGENERATE_RUN_TIME_STATS	0
-#define configCHECK_FOR_STACK_OVERFLOW	2
+#define configCHECK_FOR_STACK_OVERFLOW	1
 #define configUSE_RECURSIVE_MUTEXES		1
 #define configUSE_MALLOC_FAILED_HOOK	1
 #define configUSE_APPLICATION_TASK_TAG	0
@@ -107,13 +106,21 @@ case configTICK_VECTOR is set to TIMER0_A0_VECTOR. */
 #define configASSERT( x ) if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); for( ;; ); }
 
 /* User defined defines */
+#define configUSE_IDLE_HOOK				0
+
+
 #define CONFIG_FREERTOS_TICK_COUNT      1
 #define portACLK_FREQUENCY_HZ			( ( TickType_t ) 32768 )
 #define usACLK_Frequency_Hz	32768
 #define ulReloadValueForOneTick	(usACLK_Frequency_Hz / configTICK_RATE_HZ)
-#define portACLK_DIVIDER				64
-#define ulReloadValueForOneTickTicklessTimer	(ulReloadValueForOneTick / portACLK_DIVIDER)
-#define config_SLEEP_ON_IDLE 1
+#define timer1ACLK_DIVIDER				4
+#define ulReloadValueForOneTickTicklessTimer	(ulReloadValueForOneTick / timer1ACLK_DIVIDER)
+#define portSUPPRESS_TICKS_AND_SLEEP( xIdleTime ) vApplicationSleep( xIdleTime )
+
+#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP  4
+#define maxSUPPRESStICKS (65535 / ulReloadValueForOneTickTicklessTimer)
+#define configUSE_TICKLESS_IDLE 2
+// #define CONSUMPTION_TEST 1
 
 
 #endif /* FREERTOS_CONFIG_H */

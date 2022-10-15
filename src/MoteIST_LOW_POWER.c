@@ -5,11 +5,13 @@
 #include "MoteIST_LOW_POWER.h"
 #include "hal_MSP-430F5438-MoteIST.h"
 #include "./MoteModules/include/MOTEIST_serial.h"
+#include "FreeRTOSConfig.h"
+#include "config.h"
 
 /* Holds the maximum number of ticks that can be suppressed - which is
 basically how far into the future an interrupt can be generated. Set during
 initialisation. */
-TickType_t xMaximumPossibleSuppressedTicks;
+TickType_t xMaximumPossibleSuppressedTicks = maxSUPPRESStICKS;
 
 uint16_t reloadTime = 0;
 
@@ -37,21 +39,17 @@ static int frequencyChosenSVS = 0;
 
 
 
-/* Flag set from the tick interrupt to allow the sleep processing to know if
-sleep mode was exited because of an tick interrupt or a different interrupt. */
-volatile uint16_t ulTickFlag = pdFALSE;
 
-
-#define configPRE_SLEEP_PROCESSING(x) __bis_SR_register( LPM1_bits + GIE )
+// #define configPRE_SLEEP_PROCESSING(x) __bis_SR_register( LPM1_bits + GIE )
 
 //__bis_SR_register( LPM1_bits + GIE ); \
 
 // 	LPC_GPIO1->FIOPIN = (1 << 23);
 
 
-#define configPOST_SLEEP_PROCESSING(x) hal_toggle_led(LED_2)
+// #define configPOST_SLEEP_PROCESSING(x) hal_toggle_led(LED_2)
 // 	LPC_GPIO1->FIOPIN = (0 << 23);
-
+// #define configUSE_TICKLESS_IDLE 2
 
 #if ( configUSE_TICKLESS_IDLE == 2 )
 void vApplicationSleep(TickType_t xExpectedIdleTime)
@@ -60,7 +58,7 @@ void vApplicationSleep(TickType_t xExpectedIdleTime)
 	TickType_t xModifiableIdleTime;
 
 	uint16_t ulReloadValue;
-
+	// LED_PORT_OUT ^= LED_R;
 
 	/* Make sure the SysTick reload value does not overflow the counter. */
 	if (xExpectedIdleTime > xMaximumPossibleSuppressedTicks)
@@ -113,21 +111,27 @@ void vApplicationSleep(TickType_t xExpectedIdleTime)
 	}
 	else
 	{
-		//This assumes the clock rate of the TIMER0 and TIMER1 is the same
-		reloadTime = ulReloadValue;
 
-		//Assuming clock rate of Timer1 is 512Hz, so reload value for one tick is 5
-
-		ulReloadValue = ulReloadValueForOneTickTicklessTimer * xExpectedIdleTime - (vPortGetCounterTimer0() / portACLK_DIVIDER);
-		/* Set the new reload value. */
-		if (ulReloadValue <= 0) {
+		/* Adjust the Timer1 value to take into account that the current time
+		slice is already partially complete by Timer2. */
+		ulReloadValue = (ulReloadValueForOneTickTicklessTimer * xExpectedIdleTime) - (vPortGetCounterTimer0() / timer1ACLK_DIVIDER );
+		
+		if (ulReloadValue == 6450) {
 			hal_toggle_led(LED_3);
 			while (1);
-		}
+		}	
+
+
+		/* If the . */
+		// if (ulReloadValue <= 0) {
+		// 	hal_toggle_led(LED_3);
+		// 	while (1);
+		// }
 
 		reloadTime = ulReloadValue;
+		
 		//TIME 1
-		vPortSetupTimer1(ulReloadValue);
+		vPortSetReloadTimer1(ulReloadValue);
 
 
 		/* Sleep until something happens.  configPRE_SLEEP_PROCESSING() can
@@ -137,21 +141,20 @@ void vApplicationSleep(TickType_t xExpectedIdleTime)
 		time variable must remain unmodified, so a copy is taken. */
 
 		xModifiableIdleTime = xExpectedIdleTime;
-
-		configPRE_SLEEP_PROCESSING(xModifiableIdleTime);
-		// __bis_SR_register( LPM0_bits + GIE );
+		// configPRE_SLEEP_PROCESSING(xModifiableIdleTime);
+		__bis_SR_register( LPM3_bits + GIE );
 		if (xModifiableIdleTime > 0)
 		{
-			//while(P2IFG == 0x00); //wait FOR INTERRUPT?
+			// __nop(); //wait FOR INTERRUPT?
 		}
-		configPOST_SLEEP_PROCESSING(xExpectedIdleTime);
+		// configPOST_SLEEP_PROCESSING(xExpectedIdleTime);
 
 
 
-		/* Re-enable interrupts to allow the interrupt that brought the MCU
-		out of sleep mode to execute immediately.  see comments above
-		__disable_interrupt() call above. */
-		__enable_interrupt();
+		//  Re-enable interrupts to allow the interrupt that brought the MCU
+		// out of sleep mode to execute immediately.  see comments above
+		// __disable_interrupt() call above. 
+		// __enable_interrupt();
 
 		/* Disable interrupts again because the clock is about to be stopped
 		and interrupts that execute while the clock is stopped will increase
@@ -184,6 +187,7 @@ void vApplicationSleep(TickType_t xExpectedIdleTime)
 			/* Trap under/overflows before the calculated value is used. */
 			configASSERT(ulCounterValue >= 0);
 
+
 			/* As the pending tick will be processed as soon as this
 			function exits, the tick value maintained by the tick is stepped
 			forward by one less than the time spent waiting. */
@@ -194,6 +198,7 @@ void vApplicationSleep(TickType_t xExpectedIdleTime)
 		}
 		else /// CORRECT HERE - IT SHOULD HAVE A WAY OF ADJUSTING THE COMPLETED PERIODS TO TIMER 1 - STILL NOT DOING IT
 		{
+
 			/* Something other than the tick interrupt ended the sleep.
 			Work out how long the sleep lasted rounded to complete tick
 			periods (not the ulReload value which accounted for part
@@ -213,22 +218,37 @@ void vApplicationSleep(TickType_t xExpectedIdleTime)
 
 		}
 
-		/* Exit with interrupts enabled. */
-		__enable_interrupt();
+
 
 		vTaskStepTick(ulCompleteTickPeriods);
+		// if(ulCompleteTickPeriods==79) 
+
+		/* Exit with interrupts enabled. */
+		__enable_interrupt();
 
 		/* Restart SysTick so it runs from portNVIC_SYSTICK_LOAD_REG
 		again, then set portNVIC_SYSTICK_LOAD_REG back to its standard
 		value. */
-		vPortSetupTimer0();
-
+		vPortEnableTimer0();
+		// hal_toggle_led(LED_2);
 
 
 	}
 
 	return;
 }
+
+
+#pragma vector = TIMER1_A0_VECTOR
+__interrupt void TIMER1_A0_ISR (void )
+    {
+        
+        // if(TA1IV)
+        ulTickFlag = pdTRUE;
+        // hal_toggle_led(LED_3);
+        __bic_SR_register_on_exit( SCG1 + SCG0 + OSCOFF + CPUOFF + GIE );
+        //     __nop();
+    }
 #endif
 
 
@@ -394,7 +414,7 @@ static int findNextDeadline(int *deadlinesArray, int currentTick)
    Only Implemented for RM
 */
 // Changed the numberOfTasks to a local variable
-#if LOW_POWER_MODE == 0
+#if LOW_POWER_MODE == 2
 int setupCycleConservingDVS()
 {
 
@@ -455,9 +475,9 @@ static int cycleConservingDVSFrequencySelector(int currentTick)
 		}
 	}
 	// if(desiredFrequencyLevel == 3) LED_PORT_OUT ^= LED_3;
-	if(desiredFrequencyLevel & 4 ) LED_PORT_OUT ^= LED_1;
-	if(desiredFrequencyLevel & 2 ) LED_PORT_OUT ^= LED_2;
-	if(desiredFrequencyLevel & 1 ) LED_PORT_OUT ^= LED_3;
+	// if(desiredFrequencyLevel & 4 ) LED_PORT_OUT ^= LED_1;
+	// if(desiredFrequencyLevel & 2 ) LED_PORT_OUT ^= LED_2;
+	// if(desiredFrequencyLevel & 1 ) LED_PORT_OUT ^= LED_3;
 
 
 	// Esta a causar erros aqui for some reason (devia ser assim o codigo antigo quando calculava
@@ -485,11 +505,27 @@ static void cycleConservingDVSAllocateCycles(int k)
 	}
 }
 
+void checkForOtherTasksReady(int* deadlinesArray, int currentTick){
+	
+	int i = 0;
+	for (i = 0; i < numberOfTasks; i++)
+	{
+		if (deadlinesArray[i] <= currentTick)
+			c_lefti[i] = taskWorstCaseComputeTime[i];
+	}
+	
+}
+
 int cycleConservingDVSTaskReady(int taskNumber, int currentTick, int taskNextExecution)
 {
 	taskDeadlines[taskNumber] = taskNextExecution;
 	c_lefti[taskNumber] = taskWorstCaseComputeTime[taskNumber];
 	
+
+	//Any low priority task in ready state?????????? Maybe we should check
+	//To populate c_lefti
+	checkForOtherTasksReady(taskDeadlines, currentTick);
+
 	int s_m = findNextDeadline(taskDeadlines, currentTick) - currentTick;
 
 	// float ceilAux = (s_m * (frequencyStages[frequencyChosenSVS] * 1.0) / (frequencyStages[0] * 1.0));
@@ -498,13 +534,16 @@ int cycleConservingDVSTaskReady(int taskNumber, int currentTick, int taskNextExe
 	int aux = 0;
 	int s_j =  (s_m * (frequencyStages[frequencyChosenSVS] * 1.0f) / (frequencyStages[0] * 1.0f));;
 
+
+	
+
 	// int s_j = ceil(s_m * (frequencyStages[currentFrequencyLevel] * 1.0) / (frequencyStages[0] * 1.0));
 	cycleConservingDVSAllocateCycles(s_j);
 	auxiliarValue = s_j;
 	aux = cycleConservingDVSFrequencySelector(currentTick);
 	return aux;
 }
- 
+
 int cycleConservingDVSTaskComplete(int taskNumber, int currentTick)
 {
 	c_lefti[taskNumber] = 0;
@@ -519,50 +558,7 @@ int getCurrentFrequency() {
 	// return frequencyStages[currentFrequencyLevel];
 }
 
-// int setupPowerSaving(int main_numberOfTasks, int* main_taskWorstCaseComputeTime, int* main_taskDeadlines, int main_availableFrequencyLevels, int* main_frequencyStages,int main_mode){
 
-// 	setupDVFS(main_numberOfTasks,main_taskWorstCaseComputeTime, main_taskDeadlines, main_availableFrequencyLevels,  main_frequencyStages, main_mode);
-
-
-// 	switch(mode){
-// 		//Sleep on idle
-// 		case 0:
-// 			#define configUSE_TICKLESS_IDLE 0
-// 			#define config_SLEEP_ON_IDLE 1
-// 			break;
-// 		//Sleep on Tickless
-// 		case 1:
-// 			#define configUSE_TICKLESS_IDLE 2
-// 			#define config_SLEEP_ON_IDLE 0
-// 			break;
-
-// 		if(!sufficientSchedulabilityTest()) return -1;
-// 		//SVS no tickless
-// 		case 2:
-// 			#define configUSE_TICKLESS_IDLE 0
-// 			if(!staticVoltageScalingFrequencyLevelSelector()) return -3;
-// 			break;
-// 		//SVS Tickless
-// 		case 3:
-// 			#define configUSE_TICKLESS_IDLE 2
-// 			if(!staticVoltageScalingFrequencyLevelSelector()) return -3;
-// 			break;
-// 		//Cycle Conserving no Tickless
-// 		case 4:
-// 			#define configUSE_TICKLESS_IDLE 0
-// 			if(!setupCycleConservingDVS()) return -2;
-// 			break;
-// 		//Cycle conserving Tickless
-// 		case 5:
-// 			#define configUSE_TICKLESS_IDLE 2
-// 			if(!setupCycleConservingDVS()) return -2;
-// 			break;
-
-// 	}
-
-
-// 	//implement feasibility test
-// }
 int pow(int base, int power) {
 	int result = base, i;
 	for (i = 1; i < power; ++i)
@@ -619,14 +615,11 @@ void vTaskStartLowPowerScheduller(int main_numberOfTasks, int *main_taskWorstCas
 	case 2:
 		setupDVFS(main_numberOfTasks, main_taskWorstCaseComputeTime, main_taskDeadlines, main_availableFrequencyLevels, main_frequencyStages, main_mode);
 		dvfsMode = 2;
+		#if LOW_POWER_MODE == 2
 		setupCycleConservingDVS();
+		#endif
 		break;
 
-	case 3:
-		setupDVFS(main_numberOfTasks, main_taskWorstCaseComputeTime, main_taskDeadlines, main_availableFrequencyLevels, main_frequencyStages, main_mode);
-		//frequencyLevelSelect(3);
-		dvfsMode = 2;
-		break;
 	}
 }
 

@@ -16,14 +16,13 @@ uint16_t vPortGetReloadTimer0(void);
 
 
 
-void vPortSetupTimer1(int reloadTimeMilis);
-void vPortSetupReloadTimer1(uint16_t reload);
+void vPortSetupTimer1(void);
+void vPortSetReloadTimer1(uint16_t reload);
 void vPortDisableTimer1(void);
 void vPortEnableTimer1(void);
 void vPortResetTimer1(void);
 uint16_t vPortGetCounterTimer1(void);
 void vPortSetCounterTimer1(uint16_t count);
-void vPortSetReloadTimer1(uint16_t reload);
 uint16_t vPortGetReloadTimer1(void);
 
 

@@ -1,0 +1,3 @@
+// #define LOW_POWER_MODE 
+// #define CPU_LOW_POWER_MODE 3
+#define CONSUMPTION_TEST 1
