@@ -1,11 +1,6 @@
-MRM Program command
-java -jar ~/Desktop/distv2/MRM2.jar program --fp=build/moteist.hex --s=512 --p=/dev/ttyUSB0 &&
+# Low power implementation of FreeRTOS with Low power Modes and DVFS
 
-Putty command
-sudo putty /dev/ttyUSB0 -serial -sercfg 115200,8,n,1,N
-
-///HOW TO PROGRAM MOTE///
-
+Using the MRMv2 to program the mote
 1- first you need to list the devices available
 	ls /dev/ttyUSB*
 
